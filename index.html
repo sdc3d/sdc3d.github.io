@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="format-detection" content="telephone=no">
+<title>暗夜追逃 - 1v3非对称回合制</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="netHud"></div>
+<div id="netToast"></div>
+<div id="game">
+  <div id="mapArea">
+    <div id="titleBar">暗夜追逃 · 1v3非对称回合制</div>
+    <canvas id="cv"></canvas>
+    <div id="netWaitMask"><div class="wmInner" id="netWaitText"></div></div>
+    <button class="btn blue" id="helpBtn" onclick="showHelp()">帮助</button>
+    <label style="font-size:12px;color:#aaa;margin-left:8px;">视图楼层：</label>
+    <select id="floorViewSel" onchange="onFloorViewChange(this.value)" style="background:#222;color:#eee;border:1px solid #555;padding:3px 6px;border-radius:4px;font-size:12px;">
+      <option value="auto">自动（当前层）</option>
+    </select>
+    <div class="legend" style="margin-top:8px;">
+      <span style="background:#2a2a3e;"></span>空地
+      <span style="background:#555;"></span>墙体
+      <span style="background:#1a4a6a;"></span>水体
+      <span style="background:#2a5a2a;"></span>草丛
+      <span style="background:#c8a850;"></span>电机
+      <span style="background:#8a5a30;"></span>箱子
+      <span style="background:#4a6a9a;"></span>窗户
+      <span style="background:#7a5a3a;"></span>楼梯
+      <span style="background:#3a2a4a;"></span>破洞
+      <span style="background:#0a8a4a;"></span>大门
+      <span style="background:#fff;height:3px;border-radius:0;"></span>窄墙
+      <span style="background:transparent;border:2px dashed #ffd700;"></span>出生点
+    </div>
+  </div>
+  <div id="sidebar">
+    <div id="turnInfo" class="panel"></div>
+    <div class="panel"><h3>角色信息</h3><div id="playerInfo" class="pInfo"></div></div>
+    <div class="panel" id="skillPanel"><h3>技能</h3><div id="skills"></div></div>
+    <div class="panel" id="shopPanel"><h3>屠夫商店 <span class="gold" id="goldDisp"></span></h3><div id="shop"></div></div>
+    <div class="panel"><h3>操作</h3><div id="actions"></div></div>
+    <div class="panel"><h3>战况</h3><div id="status" class="pInfo"></div></div>
+    <div class="panel"><h3>日志</h3><div id="log"></div></div>
+  </div>
+</div>
+<div id="devPanel">
+  <div class="devHead"><span>🛠️ 开发者模式 · 地图编辑</span><span class="devClose" onclick="toggleDev()">✕</span></div>
+  <div class="devHint">楼层使用整数 Z 坐标：-1=地下室，0=地面，1=二楼，2=三楼…… 每个 Z 是一张完整的独立地图。放置楼梯时自动在上一层创建对应平台；楼梯同 (X,Y) 上下重叠，走到楼梯格后，用「视图楼层」下拉框选择要走向的楼层，再点击相邻格即可切换 Z。<br>窄墙模式：选择「上/下/左/右边」后点击格子，即可在该格对应边放置/移除白色窄墙（同一格可放多条边）；窄墙不可跨越。</div>
+  <div style="margin:6px 0;">
+    <label style="font-size:12px;color:#aaa;">编辑楼层 (Z)：</label>
+    <select id="devFloorSel" onchange="devSwitchFloor(this.value)" style="background:#222;color:#eee;border:1px solid #555;padding:3px 6px;border-radius:4px;">
+      <option value="-1">地下室 (Z=-1)</option>
+      <option value="0" selected>地面 (Z=0)</option>
+      <option value="1">二楼 (Z=1)</option>
+      <option value="2">三楼 (Z=2)</option>
+      <option value="3">四楼 (Z=3)</option>
+    </select>
+    <button class="btn gray" style="font-size:10px;padding:3px 8px;margin-left:4px;" onclick="devClearFloor()">🗑 清空此层</button>
+  </div>
+  <div id="devPalette"></div>
+  <div class="devOpts">
+    <label>箱内物品：
+      <select id="devChestItem">
+        <option value="注射针">注射针</option>
+        <option value="医疗箱">医疗箱</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="devSpawnTag"> 出生点标记</label>
+    <label>窗户：
+      <select id="devWindowDir" style="background:#222;color:#eee;border:1px solid #555;padding:2px 4px;border-radius:4px;font-size:11px;font-family:inherit;">
+        <option value="v">竖直(上下墙)</option>
+        <option value="h">水平(左右墙)</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="devNarrowMode"> 🧱 窄墙</label>
+    <label>窄墙边：
+      <select id="devNarrowDir" style="background:#222;color:#eee;border:1px solid #555;padding:2px 4px;border-radius:4px;font-size:11px;font-family:inherit;">
+        <option value="n">上边</option>
+        <option value="s" selected>下边</option>
+        <option value="w">左边</option>
+        <option value="e">右边</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="devEraseMode"> 🧹 擦除</label>
+    <label><input type="checkbox" id="devBoardMode"> 板子编辑</label>
+    <select id="devBoardState" style="background:#222;color:#eee;border:1px solid #555;padding:2px 4px;border-radius:4px;font-size:11px;font-family:inherit;">
+      <option value="closed">放下状态</option>
+      <option value="open">打开状态</option>
+      <option value="none">移除板子</option>
+    </select>
+  </div>
+  <button class="btn blue" style="width:100%;" onclick="devExportMap()">📋 导出地图字符串</button>
+  <textarea id="devOut" readonly placeholder="导出的 mapStr 会显示在这里…"></textarea>
+  <button class="btn green" style="width:100%;margin-top:6px;" onclick="returnToLobby()">↩ 返回大厅</button>
+</div>
+<div id="lobby">
+  <div class="box">
+    <h1>暗夜追逃</h1>
+    <div class="lobbyDesc"><span class="killer">🔪 1</span> 名屠夫 对决 <span class="surv">🏃 3</span> 名逃生者 · 非对称回合制追逃</div>
+    <div id="netFlow"></div>
+  </div>
+</div>
+<div id="overlay" style="display:none;"><div class="box"><h2 id="ovTitle"></h2><p id="ovText" style="line-height:1.8;"></p><br><button class="btn green" id="ovResume" onclick="closeOverlay()">继续</button> <button class="btn" id="ovRestart" onclick="restartGame()">返回大厅 · 新一轮随机身份</button></div></div>
+
+<script src="js/utils.js"></script>
+<script src="js/constants.js"></script>
+<script src="js/mapData.js"></script>
+<script src="js/state.js"></script>
+<script src="js/map.js"></script>
+<script src="js/rules.js"></script>
+<script src="js/actions.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/lobby.js"></script>
+<script src="js/net.js"></script>
+<script src="js/dev.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

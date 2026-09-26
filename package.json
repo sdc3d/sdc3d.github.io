@@ -1,0 +1,13 @@
+{
+  "name": "identity-iv",
+  "version": "0.2.0",
+  "private": true,
+  "description": "暗夜追逃 1v3 非对称回合制 - 局域网联机房间服务器（零依赖）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=14.10"
+  }
+}
