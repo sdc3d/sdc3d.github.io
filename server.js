@@ -162,6 +162,10 @@ function send(res, code, obj, headers) {
     'Content-Type': 'application/json; charset=utf-8',
     'Content-Length': body.length,
     'Cache-Control': 'no-store',
+    // 新增这三行
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
   }, headers || {}));
   res.end(body);
 }
@@ -249,6 +253,17 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.
 
 const server = http.createServer(async (req, res) => {
   try {
+    // 新增：CORS 预检
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Max-Age': '86400'
+      });
+      return res.end();
+    }
+
     const url = new URL(req.url, 'http://x');
     // ---------- 静态文件 ----------
     if (req.method === 'GET' && !url.pathname.startsWith('/api/')) {

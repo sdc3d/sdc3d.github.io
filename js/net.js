@@ -9,7 +9,8 @@ const net={
 };
 
 function getServerUrl(){
-  return net.serverUrl||sessionStorage.getItem('net-server-url')||'';
+  const DEFAULT_SERVER_URL = 'https://dark-night-chase.onrender.com'; 
+  return net.serverUrl || sessionStorage.getItem('net-server-url') || DEFAULT_SERVER_URL;
 }
 function setServerUrl(url){
   url=(url||'').trim().replace(/\/+$/,'');
